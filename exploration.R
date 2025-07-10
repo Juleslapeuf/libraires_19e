@@ -10,7 +10,7 @@ libraires <- read.csv(filename, sep = ";")
 
 libraires_dates <- libraires %>%
   filter(str_detect(Type.de.brevet, regex("libraire", ignore_case = TRUE))) %>%
-  filter(Date.de.début.du.brevet != "")
+  filter(Date.de.début.du.brevet != "", Date.de.fin.du.brevet != "")
 
 # PREMIERE PHASE D'EXTRACTION ----
 
@@ -54,7 +54,11 @@ libraires_dates <- libraires_dates %>%
     nombres = sapply(Date.de.début.du.brevet, extraire_nombres),
     mois = sapply(Date.de.début.du.brevet, extraire_mois),
     annees = sapply(Date.de.début.du.brevet, extraire_annees),
-    autres = sapply(Date.de.début.du.brevet, extraire_autres)
+    autres = sapply(Date.de.début.du.brevet, extraire_autres),
+    nombres_fin = sapply(Date.de.fin.du.brevet, extraire_nombres),
+    mois_fin = sapply(Date.de.fin.du.brevet, extraire_mois),
+    annees_fin = sapply(Date.de.fin.du.brevet, extraire_annees),
+    autres_fin = sapply(Date.de.fin.du.brevet, extraire_autres),
   )
 
 # DEUXIEME PHASE D'EXTRACTION ----
@@ -130,13 +134,16 @@ extraire_huit_annees <- function(modalites) {
 nombres_extraits <- extraire_huit_nombres(libraires_dates$nombres)
 mois_extraits <- extraire_huit_mois(libraires_dates$mois)
 annees_extraits <- extraire_huit_annees(libraires_dates$annees)
+nombres_extraits_fin <- extraire_huit_nombres(libraires_dates$nombres_fin)
+mois_extraits_fin <- extraire_huit_mois(libraires_dates$mois_fin)
+annees_extraits_fin <- extraire_huit_annees(libraires_dates$annees_fin)
 
 # On fusionne avec le dataframe
-libraires_dates <- cbind(libraires_dates, nombres_extraits, mois_extraits, annees_extraits)
+libraires_dates <- cbind(libraires_dates, nombres_extraits, mois_extraits, annees_extraits, nombres_extraits_fin, mois_extraits_fin, annees_extraits_fin)
 
 # CREER LA COLONNE DES DATES DE DEBUT
 
-creer_dates <- function(df) {
+creer_dates_debut <- function(df) {
   # Mois français → numéro de mois
   mois_fr <- c("janvier"=1, "février"=2, "mars"=3, "avril"=4, "mai"=5, "juin"=6,
                "juillet"=7, "août"=8, "septembre"=9, "octobre"=10,
@@ -163,7 +170,35 @@ creer_dates <- function(df) {
   return(df)
 }
 
-libraires_dates <- creer_dates(libraires_dates)
+creer_dates_fin <- function(df) {
+  # Mois français → numéro de mois
+  mois_fr <- c("janvier"=1, "février"=2, "mars"=3, "avril"=4, "mai"=5, "juin"=6,
+               "juillet"=7, "août"=8, "septembre"=9, "octobre"=10,
+               "novembre"=11, "décembre"=12)
+  
+  # Pour chaque ensemble (n1/mois1/an1 ... n8/mois8/an8)
+  for (i in 1:8) {
+    # Création du nom de la nouvelle colonne date
+    nom_col <- paste0("date", i".1")
+    
+    # Récupération des colonnes jour, mois et année
+    jour <- as.integer(df[[paste0("n", i,".1")]])
+    mois_nom <- tolower(df[[paste0("mois", i,".1")]])
+    mois <- mois_fr[mois_nom]
+    annee <- as.integer(df[[paste0("an", i,".1")]])
+    
+    # Création des dates avec vérification
+    df[[nom_col]] <- as.Date(NA)  # initialise
+    valide <- !is.na(jour) & !is.na(mois) & !is.na(annee)
+    
+    df[[nom_col]][valide] <- as.Date(sprintf("%04d-%02d-%02d", annee[valide], mois[valide], jour[valide]), format = "%Y-%m-%d")
+  }
+  
+  return(df)
+}
+
+libraires_dates <- creer_dates_debut(libraires_dates)
+libraires_dates <- creer_dates_fin(libraires_dates)
 
 ggplot(libraires_dates[libraires_dates$an1 >= 1810 & libraires_dates$an1 <= 1881, ], aes(x = as.integer(an1))) +
   geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
