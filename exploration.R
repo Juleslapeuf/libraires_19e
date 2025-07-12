@@ -2,11 +2,21 @@ library(tidyverse)
 library(dplyr)
 library(stringr)
 library(ggplot2)
+library(stringi)
 
 rm(list = ls())
 
 filename <- "https://www.data.gouv.fr/fr/datasets/r/1c3f80c4-ace5-41ef-b6e1-983a8ccb5c69"
-libraires <- read.csv(filename, sep = ";")
+libraires <- read.csv(filename, sep = ";") 
+# Créer un identifiant unique pour chaque ligne afin de distinguer les brevets
+libraires <- libraires %>%
+  mutate(
+    ident = paste0(
+      stri_rand_strings(n(), 2, pattern = "[A-Z]"),
+      sprintf("%02d", sample(0:99, n(), replace = TRUE)),
+      stri_rand_strings(n(), 2, pattern = "[A-Z]")
+    )
+  )
 
 libraires_dates <- libraires %>%
   filter(str_detect(Type.de.brevet, regex("libraire", ignore_case = TRUE))) %>%
@@ -219,7 +229,7 @@ summary(na.omit(libraires_dates$duree))
 
 # TRAVAIL EXPLORATOIRE SUR LES AUTRES DATES
 libraires_dates_exemples <- libraires_dates %>%
-  select(Type.de.brevet, Date.de.début.du.brevet, Date.de.fin.du.brevet, matches("^date\\d")) %>%
-  filter(!is.na(date6))
+  select(ident, Type.de.brevet, Date.de.début.du.brevet, Date.de.fin.du.brevet, matches("^date\\d")) %>%
+  filter(!is.na(date2))
 
 row.names(libraires_dates_exemples) <- NULL
