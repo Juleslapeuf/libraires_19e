@@ -179,7 +179,7 @@ creer_dates_fin <- function(df) {
   # Pour chaque ensemble (n1/mois1/an1 ... n8/mois8/an8)
   for (i in 1:8) {
     # Création du nom de la nouvelle colonne date
-    nom_col <- paste0("date", i".1")
+    nom_col <- paste0("date", i, ".1")
     
     # Récupération des colonnes jour, mois et année
     jour <- as.integer(df[[paste0("n", i,".1")]])
@@ -206,9 +206,20 @@ ggplot(libraires_dates[libraires_dates$an1 >= 1810 & libraires_dates$an1 <= 1881
   labs(title = "Histogramme des années (an1)", x = "Année", y = "Fréquence") +
   theme_minimal()
 
+ggplot(libraires_dates[libraires_dates$an1.1 >= 1810 & libraires_dates$an1.1 <= 1881, ], aes(x = as.integer(an1.1))) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  scale_x_continuous(breaks = seq(1810, 1881, by = 5)) +
+  labs(title = "Histogramme des années (an1)", x = "Année", y = "Fréquence") +
+  theme_minimal()
+
+libraires_dates <- libraires_dates %>%
+  mutate(duree = as.numeric(date1.1 - date1))
+
+summary(na.omit(libraires_dates$duree))
+
 # TRAVAIL EXPLORATOIRE SUR LES AUTRES DATES
 libraires_dates_exemples <- libraires_dates %>%
   select(Type.de.brevet, Date.de.début.du.brevet, Date.de.fin.du.brevet, matches("^date\\d")) %>%
-  filter(!is.na(date2))
-# Parfois il y a deux dates car il y a deux professions
-# Parfois il y a deux dates mais on ne sais pas pq
+  filter(!is.na(date6))
+
+row.names(libraires_dates_exemples) <- NULL
